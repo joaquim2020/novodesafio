@@ -1,4 +1,4 @@
-name: Create Release on Push to Main
+name: Auto Release on Push to Main
 
 on:
   push:
@@ -13,9 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Git version
-        run: git config --global user.name "github-actions[bot]"
-      - run: git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Bump Version and Tag
+        id: bump_version
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          IFS='.' read -r -a version <<< "${latest_tag:-v0.0.0}"
+          version[2]=$((version[2]+1))
+          new_tag="${version[0]}.${version[1]}.${version[2]}"
+          echo "New tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
 
       - name: Create Release
         id: create_release
@@ -23,7 +30,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          tag_name: ${{ env.new_tag }}
+          release_name: Release ${{ env.new_tag }}
           draft: false
           prerelease: false

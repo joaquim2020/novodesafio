@@ -24,13 +24,14 @@ jobs:
           echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> $GITHUB_ENV
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.new_tag }}
-          release_name: Release ${{ env.new_tag }}
-          draft: false
-          prerelease: false
+      - name: Bump Version and Tag
+        id: bump_version
+        run: |
+          git fetch --tags
+          # Check if there are any tags, default to v0.0.0 if none are found
+          latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "v0.0.0")
+          IFS='.' read -r -a version <<< "${latest_tag:-v0.0.0}"
+          version[2]=$((version[2]+1))
+          new_tag="${version[0]}.${version[1]}.${version[2]}"
+          echo "New tag: $new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_ENV
